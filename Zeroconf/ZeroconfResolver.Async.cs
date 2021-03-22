@@ -137,8 +137,9 @@ namespace Zeroconf
                                              netInterfacesToSendRequestOn)
                                  .ConfigureAwait(false);
 
+            // Logic here is to return services linked to the protocol asked only if there were services found. If none were found, it means that only PTR records were given and a further query is needed, but we need the instance name given in the PTR response
             return dict.Select(pair => ResponseToZeroconf(pair.Value, pair.Key, options))
-                       .Where(zh => zh.Services.Any(s => options.Protocols.Contains(s.Key))) // Ensure we only return records that have matching services
+                       .Where(zh => zh.Services.Count > 0 ? zh.Services.Any(s => options.Protocols.Contains(s.Key)) : true) // Ensure we only return records that have matching services when there are services found.
                        .ToList();
         }
 

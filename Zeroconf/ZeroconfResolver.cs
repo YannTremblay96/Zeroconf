@@ -75,13 +75,23 @@ namespace Zeroconf
         static byte[] GetRequestBytes(ZeroconfOptions options)
         {
             var req = new Request();
-            var queryType = options.ScanQueryType == ScanQueryType.Ptr ? QType.PTR : QType.ANY;
 
+            // Always request the PTR record since it should normally be the entry point. Even when asking for any and all records
+            // Adding the type of records to search for because if only specifying ANY, the response sometimes omits the A records in additional RRs
+            //  and those records are often unreachable by query means because the protocol name to get them has no link to preceding records
             foreach (var protocol in options.Protocols)
             {
-                var question = new Question(protocol, queryType, QClass.IN);
+                var question = new Question(protocol, QType.PTR, QClass.IN);
 
                 req.AddQuestion(question);
+
+                if (options.ScanQueryType == ScanQueryType.Any)
+                {
+                    question = new Question(protocol, QType.SRV, QClass.IN);
+                    req.AddQuestion(question);
+                    question = new Question(protocol, QType.TXT, QClass.IN);
+                    req.AddQuestion(question);
+                }
             }
 
             return req.Data;
